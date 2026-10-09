@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monochrome WhatsApp Global Chat</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        /* Custom monochrome scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46;
+        }
+
+        .chat-bg {
+            background-color: #030303;
+            background-image: radial-gradient(#121214 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col overflow-hidden bg-black text-white">
+
+    <!-- Username Modal Overlay -->
+    <div id="username-modal" class="fixed inset-0 bg-black z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div class="w-16 h-16 rounded-full bg-white text-black font-bold text-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fa-solid fa-comments"></i>
+            </div>
+            <h2 class="text-lg font-bold text-white mb-1">Monochrome WhatsApp</h2>
+            <p class="text-xs text-zinc-400 mb-6">Enter your display name to join the live public chat room.</p>
+            
+            <input type="text" id="username-input" placeholder="Your display name..." maxlength="20"
+                class="w-full bg-black border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none mb-4 text-center transition">
+            
+            <button onclick="setUserName()" class="w-full bg-white text-black font-semibold py-3 rounded-xl text-sm hover:bg-zinc-200 transition shadow-md">
+                Start Chatting
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Full-Screen WhatsApp Web Layout -->
+    <div class="w-full h-full flex flex-col md:flex-row bg-zinc-950 overflow-hidden relative">
+
+        <!-- Sidebar (Chat List & Active Users) -->
+        <aside id="sidebar" class="w-full md:w-80 lg:w-96 bg-zinc-950 border-r border-zinc-800 flex flex-col h-full z-20 transition-all duration-300">
+            <!-- User Header -->
+            <div class="bg-zinc-900 border-b border-zinc-800 px-4 py-3.5 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <div id="my-avatar" class="w-10 h-10 rounded-full bg-white text-black font-bold flex items-center justify-center text-sm shadow-md">U</div>
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-white border-2 border-zinc-900 rounded-full"></span>
+                    </div>
+                    <div>
+                        <h2 id="my-display-name" class="font-semibold text-sm text-white tracking-wide">Guest</h2>
+                        <p class="text-[11px] text-zinc-400">Online • Live Sync</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 text-zinc-300">
+                    <button onclick="openUsersList()" class="w-9 h-9 rounded-full hover:bg-zinc-800 flex items-center justify-center transition" title="Online Members">
+                        <i class="fa-solid fa-users text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="p-3 border-b border-zinc-900 bg-zinc-950 shrink-0">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="chat-search" placeholder="Search global messages..." oninput="filterMessages(this.value)"
+                        class="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition">
+                </div>
+            </div>
+
+            <!-- Rooms / Chats List -->
+            <div class="flex-1 overflow-y-auto divide-y divide-zinc-900/60">
+                <div onclick="switchTab('global')" id="room-global" class="flex items-center px-4 py-3.5 cursor-pointer bg-zinc-900 border-l-2 border-white transition">
+                    <div class="relative mr-3 shrink-0">
+                        <div class="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 text-white font-bold flex items-center justify-center text-base shadow-sm">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 bg-white border-2 border-zinc-950 rounded-full"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="font-semibold text-xs text-white truncate">Global Public Room</h3>
+                            <span id="global-last-time" class="text-[10px] text-zinc-500 shrink-0">Active</span>
+                        </div>
+                        <p id="global-last-msg" class="text-[11px] text-zinc-400 truncate pr-2">Welcome to the live global room</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Branding -->
+            <div class="bg-zinc-900/50 border-t border-zinc-900 px-4 py-2.5 text-center text-[11px] text-zinc-500 shrink-0">
+                Monochrome WhatsApp • Real-Time Cloud Sync
+            </div>
+        </aside>
+
+        <!-- Main Chat Window (Full Screen) -->
+        <main id="main-chat-window" class="flex-1 flex flex-col h-full bg-zinc-950 relative w-full overflow-hidden">
+            
+            <!-- Chat Header -->
+            <header class="bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between z-10 shrink-0 select-none">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-zinc-300 hover:text-white mr-1 text-lg">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div class="relative">
+                        <div class="w-10 h-10 rounded-full bg-white text-black font-bold flex items-center justify-center text-sm shadow-inner">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-white border-2 border-zinc-900 rounded-full"></span>
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-sm tracking-wide text-white">Global Public Room</h1>
+                        <p id="online-count-badge" class="text-xs text-zinc-400">Connecting live...</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3 text-zinc-300">
+                    <button onclick="openUsersList()" class="w-9 h-9 rounded-full hover:bg-zinc-800 flex items-center justify-center transition" title="Online Users"><i class="fa-solid fa-users text-xs"></i></button>
+                    <button onclick="clearLocalStorageChat()" class="w-9 h-9 rounded-full hover:bg-zinc-800 flex items-center justify-center transition" title="Clear Local Chat"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                </div>
+            </header>
+
+            <!-- Message List Area -->
+            <div id="message-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 chat-bg relative">
+                <!-- Encryption Badge -->
+                <div class="flex justify-center my-2">
+                    <div class="bg-zinc-900/90 border border-zinc-800/80 text-zinc-400 text-[10px] px-3.5 py-1.5 rounded-xl text-center max-w-sm shadow-sm backdrop-blur-md">
+                        <i class="fa-solid fa-lock mr-1.5 text-white"></i> Messages are live-synced across all active visitors on this website.
+                    </div>
+                </div>
+                <!-- Messages Injected Dynamically -->
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="hidden px-4 py-1.5 bg-[#030303] text-zinc-400 text-xs flex items-center space-x-2 shrink-0">
+                <span class="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
+                <span class="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                <span class="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                <span id="typing-user-text" class="italic text-[11px] text-zinc-400 pl-1">Someone is typing...</span>
+            </div>
+
+            <!-- Chat Footer Input -->
+            <footer class="bg-zinc-900 border-t border-zinc-800 p-3 flex items-center space-x-2 relative z-10 shrink-0">
+                <!-- Emoji Picker Toggle -->
+                <button onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 flex items-center justify-center transition text-lg" title="Emojis"><i class="fa-regular fa-face-smile"></i></button>
+
+                <!-- Emoji Picker Popover -->
+                <div id="emoji-picker" class="hidden absolute bottom-16 left-3 bg-zinc-900 border border-zinc-800 p-3 rounded-2xl shadow-2xl grid grid-cols-6 gap-2 text-xl z-50">
+                    <button onclick="insertEmoji('😊')" class="hover:bg-zinc-800 p-1.5 rounded-lg">😊</button>
+                    <button onclick="insertEmoji('😂')" class="hover:bg-zinc-800 p-1.5 rounded-lg">😂</button>
+                    <button onclick="insertEmoji('👍')" class="hover:bg-zinc-800 p-1.5 rounded-lg">👍</button>
+                    <button onclick="insertEmoji('🔥')" class="hover:bg-zinc-800 p-1.5 rounded-lg">🔥</button>
+                    <button onclick="insertEmoji('💡')" class="hover:bg-zinc-800 p-1.5 rounded-lg">💡</button>
+                    <button onclick="insertEmoji('❤️')" class="hover:bg-zinc-800 p-1.5 rounded-lg">❤️</button>
+                    <button onclick="insertEmoji('✨')" class="hover:bg-zinc-800 p-1.5 rounded-lg">✨</button>
+                    <button onclick="insertEmoji('🚀')" class="hover:bg-zinc-800 p-1.5 rounded-lg">🚀</button>
+                    <button onclick="insertEmoji('💻')" class="hover:bg-zinc-800 p-1.5 rounded-lg">💻</button>
+                    <button onclick="insertEmoji('☕')" class="hover:bg-zinc-800 p-1.5 rounded-lg">☕</button>
+                    <button onclick="insertEmoji('🎉')" class="hover:bg-zinc-800 p-1.5 rounded-lg">🎉</button>
+                    <button onclick="insertEmoji('🙌')" class="hover:bg-zinc-800 p-1.5 rounded-lg">🙌</button>
+                </div>
+
+                <!-- Input Field -->
+                <div class="flex-1 relative">
+                    <input type="text" id="message-input" placeholder="Type a message to everyone..." 
+                        oninput="handleTyping()"
+                        onkeypress="handleKeyPress(event)"
+                        class="w-full bg-black border border-zinc-800 focus:border-zinc-500 rounded-full px-4 py-2.5 text-xs md:text-sm text-white placeholder-zinc-500 focus:outline-none transition shadow-inner">
+                </div>
+
+                <!-- Send Button -->
+                <button onclick="sendMessage()" class="w-10 h-10 rounded-full bg-white text-black font-semibold flex items-center justify-center hover:bg-zinc-200 transition shadow-md shrink-0">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Generic Modal Overlay -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl relative">
+            <!-- Modal Content -->
+        </div>
+    </div>
+
+    <!-- Firebase & Live Chat Script Engine -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, setDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Environment variables provided by runtime
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'monochrome-global-chat';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyMockKeyForStandaloneDemo123",
+            authDomain: "mock-app.firebaseapp.com",
+            projectId: "mock-app",
+            storageBucket: "mock-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123:web:abc"
+        };
+
+        let app, db, auth, userId = null;
+        let messagesList = [];
+        let activeUsersMap = {};
+        let searchFilterText = '';
+
+        // Global state username
+        window.myUsername = localStorage.getItem('mono_global_username') || '';
+
+        window.onload = async function() {
+            if (!window.myUsername) {
+                document.getElementById('username-modal').classList.remove('hidden');
+            } else {
+                document.getElementById('username-modal').classList.add('hidden');
+                initChatApp();
+            }
+
+            // Outside click handler for emojis
+            window.addEventListener('click', function(e) {
+                if (!e.target.closest('button') && !e.target.closest('#emoji-picker')) {
+                    document.getElementById('emoji-picker').classList.add('hidden');
+                }
+            });
+        };
+
+        window.setUserName = function() {
+            const input = document.getElementById('username-input');
+            const name = input.value.trim();
+            if (!name) return;
+
+            window.myUsername = name;
+            localStorage.setItem('mono_global_username', name);
+            document.getElementById('username-modal').classList.add('hidden');
+            initChatApp();
+        };
+
+        async function initChatApp() {
+            document.getElementById('my-display-name').textContent = window.myUsername;
+            document.getElementById('my-avatar').textContent = window.myUsername.charAt(0).toUpperCase();
+
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                userId = auth.currentUser ? auth.currentUser.uid : 'anon_' + Math.random();
+                
+                setupFirestoreListeners();
+                updatePresence();
+                setInterval(updatePresence, 30000); // Heartbeat presence
+            } catch (err) {
+                console.warn("Using fallback local/broadcast simulation due to offline/mock environment:", err);
+                setupFallbackSimulation();
+            }
+        }
+
+        // --- Firestore Realtime Database Sync ---
+        function setupFirestoreListeners() {
+            if (!db) return;
+
+            // 1. Messages Collection (RULE 1 & 2: simple collection path, no complex queries)
+            const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'global_messages');
+            
+            onSnapshot(messagesRef, (snapshot) => {
+                messagesList = [];
+                snapshot.forEach(docSnap => {
+                    messagesList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                // Sort in JS memory by timestamp
+                messagesList.sort((a, b) => {
+                    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
+                    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+                    return timeA - timeB;
+                });
+
+                renderMessages();
+                scrollToBottom();
+
+                if (messagesList.length > 0) {
+                    const last = messagesList[messagesList.length - 1];
+                    document.getElementById('global-last-msg').textContent = `${last.sender}: ${last.text}`;
+                }
+            }, (error) => {
+                console.error("Firestore error:", error);
+            });
+
+            // 2. Presence Collection
+            const presenceRef = collection(db, 'artifacts', appId, 'public', 'data', 'online_users');
+            onSnapshot(presenceRef, (snapshot) => {
+                activeUsersMap = {};
+                let count = 0;
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    // Consider active if seen in last 60 seconds
+                    if (Date.now() - (data.lastSeen || 0) < 60000) {
+                        activeUsersMap[docSnap.id] = data.name;
+                        count++;
+                    }
+                });
+                document.getElementById('online-count-badge').textContent = `${count} online member${count === 1 ? '' : 's'}`;
+            });
+        }
+
+        async function updatePresence() {
+            if (!db || !userId) return;
+            try {
+                const presenceDoc = doc(db, 'artifacts', appId, 'public', 'data', 'online_users', userId);
+                await setDoc(presenceDoc, {
+                    name: window.myUsername,
+                    lastSeen: Date.now()
+                }, { merge: true });
+            } catch (e) {
+                // Ignore presence update errors in offline mode
+            }
+        }
+
+        // --- Fallback BroadcastChannel / LocalStorage Simulation if Firebase is offline ---
+        function setupFallbackSimulation() {
+            const channel = new BroadcastChannel('monochrome_global_fallback');
+            messagesList = JSON.parse(localStorage.getItem('mono_fallback_msgs')) || [
+                { id: '1', sender: 'System', text: 'Welcome to the Global Monochrome Room!', timestamp: Date.now() }
+            ];
+
+            channel.onmessage = (event) => {
+                if (event.data.type === 'NEW_MSG') {
+                    messagesList.push(event.data.msg);
+                    localStorage.setItem('mono_fallback_msgs', JSON.stringify(messagesList));
+                    renderMessages();
+                    scrollToBottom();
+                }
+            };
+
+            window.fallbackChannel = channel;
+            renderMessages();
+            scrollToBottom();
+            document.getElementById('online-count-badge').textContent = `1 online (Local Tab Sync)`;
+        }
+
+        // --- Sending Messages ---
+        window.sendMessage = async function() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const msgData = {
+                sender: window.myUsername,
+                userId: userId || 'local',
+                text: text,
+                time: timeStr,
+                timestamp: Date.now(),
+                createdAt: serverTimestamp()
+            };
+
+            input.value = '';
+
+            if (db) {
+                try {
+                    const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'global_messages');
+                    await addDoc(messagesRef, msgData);
+                } catch (e) {
+                    console.error("Error sending to Firestore:", e);
+                }
+            } else if (window.fallbackChannel) {
+                messagesList.push(msgData);
+                localStorage.setItem('mono_fallback_msgs', JSON.stringify(messagesList));
+                renderMessages();
+                scrollToBottom();
+                window.fallbackChannel.postMessage({ type: 'NEW_MSG', msg: msgData });
+            }
+        };
+
+        window.handleKeyPress = function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        };
+
+        // --- Rendering Messages ---
+        function renderMessages() {
+            const container = document.getElementById('message-container');
+            const banner = container.firstElementChild ? container.firstElementChild.outerHTML : `
+                <div class="flex justify-center my-2">
+                    <div class="bg-zinc-900/90 border border-zinc-800/80 text-zinc-400 text-[10px] px-3.5 py-1.5 rounded-xl text-center max-w-sm shadow-sm backdrop-blur-md">
+                        <i class="fa-solid fa-lock mr-1.5 text-white"></i> Messages are live-synced across all active visitors on this website.
+                    </div>
+                </div>
+            `;
+
+            let html = banner;
+            const filtered = messagesList.filter(m => {
+                if (!searchFilterText) return true;
+                return m.text.toLowerCase().includes(searchFilterText.toLowerCase()) || m.sender.toLowerCase().includes(searchFilterText.toLowerCase());
+            });
+
+            filtered.forEach(msg => {
+                const isUser = msg.sender === window.myUsername;
+                const isSystem = msg.sender === 'System';
+
+                if (isSystem) {
+                    html += `
+                        <div class="flex justify-center my-2">
+                            <div class="bg-zinc-900/60 border border-zinc-800 text-zinc-400 text-[10px] px-3 py-1 rounded-lg text-center max-w-xs">
+                                ${escapeHtml(msg.text)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="flex ${isUser ? 'justify-end' : 'justify-start'} mb-2.5">
+                            <div class="max-w-[85%] md:max-w-[65%] rounded-2xl px-4 py-2.5 text-xs md:text-sm shadow-md relative group ${
+                                isUser 
+                                    ? 'bg-white text-black font-normal rounded-br-none' 
+                                    : 'bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-bl-none'
+                            }">
+                                ${!isUser ? `<p class="text-[10px] font-semibold text-zinc-400 mb-0.5">${escapeHtml(msg.sender)}</p>` : ''}
+                                <p class="break-words leading-relaxed">${escapeHtml(msg.text)}</p>
+                                <div class="flex items-center justify-end space-x-1 mt-1 text-[9px] ${isUser ? 'text-zinc-600' : 'text-zinc-400'}">
+                                    <span>${msg.time || 'Now'}</span>
+                                    ${isUser ? `<span class="inline-flex"><i class="fa-solid fa-check-double text-[9px]"></i></span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        window.filterMessages = function(val) {
+            searchFilterText = val;
+            renderMessages();
+        };
+
+        window.scrollToBottom = function() {
+            const container = document.getElementById('message-container');
+            container.scrollTop = container.scrollHeight;
+        };
+
+        // --- Extra UI Actions ---
+        window.toggleEmojiPicker = function() {
+            const picker = document.getElementById('emoji-picker');
+            picker.classList.toggle('hidden');
+        };
+
+        window.insertEmoji = function(emoji) {
+            const input = document.getElementById('message-input');
+            input.value += emoji;
+            input.focus();
+            document.getElementById('emoji-picker').classList.add('hidden');
+        };
+
+        window.openUsersList = function() {
+            const users = Object.values(activeUsersMap);
+            let userHtml = `<h3 class="font-bold text-base text-white mb-2">Online Members (${users.length || 1})</h3>`;
+            userHtml += `<div class="max-h-48 overflow-y-auto space-y-2 mb-4 text-left">`;
+            
+            if (users.length === 0) {
+                userHtml += `<p class="text-xs text-zinc-400">You (${window.myUsername}) and other active website visitors.</p>`;
+            } else {
+                users.forEach(u => {
+                    userHtml += `<div class="flex items-center space-x-2 text-xs text-zinc-200 bg-zinc-800/50 p-2 rounded-xl">
+                        <span class="w-2 h-2 rounded-full bg-white"></span>
+                        <span class="font-semibold">${escapeHtml(u)}</span>
+                    </div>`;
+                });
+            }
+            userHtml += `</div>`;
+            userHtml += `<button onclick="closeModal()" class="w-full bg-white text-black font-medium py-2 rounded-xl text-xs hover:bg-zinc-200 transition">Close</button>`;
+
+            showModal(userHtml);
+        };
+
+        window.clearLocalStorageChat = function() {
+            messagesList = [];
+            localStorage.removeItem('mono_fallback_msgs');
+            renderMessages();
+        };
+
+        window.toggleMobileSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+        };
+
+        window.showModal = function(html) {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            content.innerHTML = html;
+            overlay.classList.remove('hidden');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('modal-overlay').classList.add('hidden');
+        };
+
+        window.escapeHtml = function(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        };
+    </script>
+</body>
+</html>
